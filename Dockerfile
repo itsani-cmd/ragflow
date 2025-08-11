@@ -11,13 +11,13 @@ WORKDIR /ragflow
 
 # Copy models downloaded via download_deps.py
 RUN mkdir -p /ragflow/rag/res/deepdoc /root/.ragflow
-RUN --mount=type=cache,id=huggingface_cache,target=/huggingface.co \
+RUN --mount=type=cache,id=ragflow-huggingface-cache,target=/huggingface.co \
     cp /huggingface.co/InfiniFlow/huqie/huqie.txt.trie /ragflow/rag/res/ && \
     tar --exclude='.*' -cf - \
         /huggingface.co/InfiniFlow/text_concat_xgb_v1.0 \
         /huggingface.co/InfiniFlow/deepdoc \
         | tar -xf - --strip-components=3 -C /ragflow/rag/res/deepdoc 
-RUN --mount=type=cache,id=huggingface_cache,target=/huggingface.co \
+RUN --mount=type=cache,id=ragflow-huggingface-cache,target=/huggingface.co \
     if [ "$LIGHTEN" != "1" ]; then \
         (tar -cf - \
             /huggingface.co/BAAI/bge-large-zh-v1.5 \
@@ -27,7 +27,7 @@ RUN --mount=type=cache,id=huggingface_cache,target=/huggingface.co \
 
 # https://github.com/chrismattmann/tika-python
 # This is the only way to run python-tika without internet access. Without this set, the default is to check the tika version and pull latest every time from Apache.
-RUN --mount=type=cache,id=deps_cache,target=/deps \
+RUN --mount=type=cache,id=ragflow-deps-cache,target=/deps \
     cp -r /deps/nltk_data /root/ && \
     cp /deps/tika-server-standard-3.0.0.jar /deps/tika-server-standard-3.0.0.jar.md5 /ragflow/ && \
     cp /deps/cl100k_base.tiktoken /ragflow/9b5ad71b2ce5302211f9c61530b329a4922fc6a4
@@ -42,7 +42,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # python-pptx:   default-jdk                              tika-server-standard-3.0.0.jar
 # selenium:      libatk-bridge2.0-0                       chrome-linux64-121-0-6167-85
 # Building C extensions: libpython3-dev libgtk-4-1 libnss3 xdg-utils libgbm-dev
-RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt \
+RUN --mount=type=cache,id=ragflow-apt-cache,target=/var/cache/apt \
     if [ "$NEED_MIRROR" == "1" ]; then \
         sed -i 's|http://ports.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
         sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
@@ -76,7 +76,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 ENV PATH=/root/.local/bin:$PATH
 
 # nodejs 12.22 on Ubuntu 22.04 is too old
-RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt \
+RUN --mount=type=cache,id=ragflow-apt-cache,target=/var/cache/apt \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt purge -y nodejs npm cargo && \
     apt autoremove -y && \
@@ -102,7 +102,7 @@ RUN cargo --version && rustc --version
 # Add msssql ODBC driver
 # macOS ARM64 environment, install msodbcsql18.
 # general x86_64 environment, install msodbcsql17.
-RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt \
+RUN --mount=type=cache,id=ragflow-apt-cache,target=/var/cache/apt \
     curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
     curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
     apt update && \
@@ -119,17 +119,17 @@ RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt \
 
 
 # Add dependencies of selenium
-RUN --mount=type=cache,id=chrome_cache,target=/chrome-linux64.zip \
+RUN --mount=type=cache,id=ragflow-chrome-cache,target=/chrome-linux64.zip \
     unzip /chrome-linux64.zip && \
     mv chrome-linux64 /opt/chrome && \
     ln -s /opt/chrome/chrome /usr/local/bin/
 
-RUN --mount=type=cache,id=chromedriver_cache,target=/chromedriver-linux64.zip \
+RUN --mount=type=cache,id=ragflow-chromedriver-cache,target=/chromedriver-linux64.zip \
     unzip -j /chromedriver-linux64.zip chromedriver-linux64/chromedriver && \
     mv chromedriver /usr/local/bin/ && \
     rm -f /usr/bin/google-chrome
 
-RUN --mount=type=cache,id=deps_cache,target=/deps \
+RUN --mount=type=cache,id=ragflow-deps-cache,target=/deps \
     if [ "$(uname -m)" = "x86_64" ]; then \
         dpkg -i /deps/libssl1.1_1.1.1f-1ubuntu2_amd64.deb; \
     elif [ "$(uname -m)" = "aarch64" ]; then \
@@ -148,7 +148,7 @@ COPY pyproject.toml uv.lock ./
 
 # https://github.com/astral-sh/uv/issues/10462
 # uv records index url into uv.lock but doesn't failover among multiple indexes
-RUN --mount=type=cache,id=ragflow_uv,target=/root/.cache/uv \
+RUN --mount=type=cache,id=ragflow-uv-cache,target=/root/.cache/uv \
     if [ "$NEED_MIRROR" == "1" ]; then \
         sed -i 's|pypi.org|mirrors.aliyun.com/pypi|g' uv.lock; \
     else \
@@ -162,7 +162,7 @@ RUN --mount=type=cache,id=ragflow_uv,target=/root/.cache/uv \
 
 COPY web web
 COPY docs docs
-RUN --mount=type=cache,id=ragflow_npm,target=/root/.npm \
+RUN --mount=type=cache,id=ragflow-npm-cache,target=/root/.npm \
     cd web && npm install && npm run build
 
 COPY .git /ragflow/.git
