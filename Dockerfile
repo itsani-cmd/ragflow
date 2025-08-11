@@ -11,13 +11,13 @@ WORKDIR /ragflow
 
 # Copy models downloaded via download_deps.py
 RUN mkdir -p /ragflow/rag/res/deepdoc /root/.ragflow
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=cache,id=huggingface_cache,target=/huggingface.co \
     cp /huggingface.co/InfiniFlow/huqie/huqie.txt.trie /ragflow/rag/res/ && \
     tar --exclude='.*' -cf - \
         /huggingface.co/InfiniFlow/text_concat_xgb_v1.0 \
         /huggingface.co/InfiniFlow/deepdoc \
         | tar -xf - --strip-components=3 -C /ragflow/rag/res/deepdoc 
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co,target=/huggingface.co \
+RUN --mount=type=cache,id=huggingface_cache,target=/huggingface.co \
     if [ "$LIGHTEN" != "1" ]; then \
         (tar -cf - \
             /huggingface.co/BAAI/bge-large-zh-v1.5 \
@@ -27,7 +27,7 @@ RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co
 
 # https://github.com/chrismattmann/tika-python
 # This is the only way to run python-tika without internet access. Without this set, the default is to check the tika version and pull latest every time from Apache.
-RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/,target=/deps \
+RUN --mount=type=cache,id=deps_cache,target=/deps \
     cp -r /deps/nltk_data /root/ && \
     cp /deps/tika-server-standard-3.0.0.jar /deps/tika-server-standard-3.0.0.jar.md5 /ragflow/ && \
     cp /deps/cl100k_base.tiktoken /ragflow/9b5ad71b2ce5302211f9c61530b329a4922fc6a4
